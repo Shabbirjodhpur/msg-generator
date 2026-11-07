@@ -4,127 +4,389 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WhatsApp URL Generator</title>
+<title>Reliable Industrial - WhatsApp Sender</title>
 
 <style>
     body {
         font-family: Arial, sans-serif;
         max-width: 700px;
-        margin: 30px auto;
-        padding: 20px;
+        margin: 20px auto;
+        padding: 15px;
         background: #f4f4f4;
     }
 
-    h2 {
-        text-align: center;
-    }
+    h2 { text-align: center; }
 
     textarea {
         width: 100%;
-        height: 130px;
-        padding: 12px;
-        margin: 10px 0 20px;
         box-sizing: border-box;
+        padding: 12px;
+        margin: 8px 0 18px;
         border: 1px solid #ccc;
-        border-radius: 6px;
+        border-radius: 7px;
         font-size: 15px;
     }
 
+    #numbers { height: 150px; }
+    #message { height: 110px; }
+
     button {
-        padding: 12px 20px;
-        background: #128C7E;
-        color: white;
+        padding: 13px;
         border: none;
-        border-radius: 5px;
+        border-radius: 6px;
         cursor: pointer;
+        font-size: 15px;
         margin: 5px 0;
     }
 
-    button:hover {
-        background: #075E54;
+    .primary {
+        background: #128C7E;
+        color: white;
+        width: 100%;
     }
 
-    .result {
+    .success {
+        background: #128C7E;
+        color: white;
+        width: 100%;
+        font-weight: bold;
+    }
+
+    .secondary {
+        background: #ddd;
+        color: #222;
+    }
+
+    .danger {
+        background: #dc3545;
+        color: white;
+    }
+
+    .panel {
         background: white;
-        padding: 12px;
-        margin: 10px 0;
-        border-radius: 6px;
-        overflow-wrap: anywhere;
+        padding: 17px;
+        border-radius: 9px;
+        margin-top: 15px;
     }
 
-    .result a {
+    .big {
+        font-size: 27px;
+        font-weight: bold;
         color: #128C7E;
-        display: block;
-        margin-bottom: 8px;
     }
+
+    .progress {
+        background: #ddd;
+        height: 10px;
+        border-radius: 10px;
+        overflow: hidden;
+        margin: 10px 0;
+    }
+
+    #progressBar {
+        background: #128C7E;
+        height: 100%;
+        width: 0%;
+    }
+
+    .url {
+        overflow-wrap: anywhere;
+        font-size: 13px;
+        color: #128C7E;
+        margin: 8px 0;
+    }
+
+    .customer {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .sent { color: green; }
+    .skipped { color: #888; }
+    .pending { color: #333; }
+
+    .hidden { display: none; }
 </style>
 </head>
 
 <body>
 
-<h2>WhatsApp URL Generator</h2>
+<h2>Reliable Industrial</h2>
+<h3 style="text-align:center">WhatsApp Sequential Sender</h3>
 
-<label><b>Phone Numbers (CSV format)</b></label>
-<textarea id="numbers" placeholder="8686751120,
-9246825221"></textarea>
+<label><b>Customer Phone Numbers (CSV)</b></label>
+<textarea id="numbers"
+placeholder="8686751120,
+9246825221,
+9876543210"></textarea>
 
-<label><b>WhatsApp Message</b></label>
-<textarea id="message" placeholder="Hi, how are you?"></textarea>
+<label><b>Common WhatsApp Message</b></label>
+<textarea id="message"
+placeholder="Hi, how are you?"></textarea>
 
-<button onclick="generateLinks()">Execute</button>
+<button class="primary" onclick="generateCampaign()">
+Generate Campaign
+</button>
 
-<button onclick="copyAll()">Copy All URLs</button>
+<div id="campaign" class="hidden">
 
-<h3>Generated URLs:</h3>
-<div id="output"></div>
+    <div class="panel">
+
+        <h3>Campaign Progress</h3>
+
+        <div class="big" id="progressText">0 / 0</div>
+
+        <div class="progress">
+            <div id="progressBar"></div>
+        </div>
+
+        <p id="summary"></p>
+
+    </div>
+
+    <div class="panel" id="currentPanel">
+
+        <h3 id="customerTitle">Customer 1</h3>
+
+        <div class="big" id="currentPhone"></div>
+
+        <p><b>Message:</b></p>
+
+        <div id="currentMessage"></div>
+
+        <button class="success" onclick="openWhatsApp()">
+            Open WhatsApp Chat
+        </button>
+
+        <button class="primary" onclick="markSent()">
+            Sent - Next Customer
+        </button>
+
+        <button class="secondary" onclick="skipCustomer()">
+            Skip Customer
+        </button>
+
+    </div>
+
+    <div class="panel hidden" id="completedPanel">
+        <h3>Campaign Completed!</h3>
+        <p>All customers have been processed.</p>
+    </div>
+
+    <div class="panel">
+
+        <h3>All Customer URLs</h3>
+
+        <button class="secondary" onclick="copyAll()">
+            Copy All URLs
+        </button>
+
+        <div id="customerList"></div>
+
+    </div>
+
+</div>
 
 <script>
 
-function generateLinks() {
+let customers = [];
+let currentIndex = 0;
+let messageText = "";
 
-    const numbersText = document.getElementById("numbers").value;
-    const message = document.getElementById("message").value;
+function generateCampaign() {
 
-    const numbers = numbersText
-        .split(/[\n,]+/)
-        .map(num => num.trim().replace(/\D/g, ""))
-        .filter(num => num.length > 0);
+    const rawNumbers =
+        document.getElementById("numbers").value;
 
-    const output = document.getElementById("output");
+    messageText =
+        document.getElementById("message").value.trim();
 
-    output.innerHTML = "";
+    if (!rawNumbers.trim() || !messageText) {
+        alert("Enter phone numbers and message.");
+        return;
+    }
 
-    numbers.forEach(number => {
+    const entries = rawNumbers.split(/[\n,;]+/);
 
-        // Add India country code if not already present
-        if (number.length === 10) {
-            number = "91" + number;
+    const unique = new Set();
+    const invalid = [];
+
+    customers = [];
+
+    entries.forEach(entry => {
+
+        let phone = entry.trim().replace(/\D/g, "");
+
+        if (!phone) return;
+
+        if (phone.length === 10) {
+            phone = "91" + phone;
         }
 
-        const url = "https://wa.me/" + number +
-                    "?text=" + encodeURIComponent(message);
+        if (phone.length !== 12 || !phone.startsWith("91")) {
+            invalid.push(entry.trim());
+            return;
+        }
+
+        if (unique.has(phone)) return;
+
+        unique.add(phone);
+
+        customers.push({
+            phone: phone,
+            status: "pending",
+            url: "https://wa.me/" + phone +
+                 "?text=" + encodeURIComponent(messageText)
+        });
+
+    });
+
+    if (invalid.length) {
+        alert("Invalid numbers:\n" + invalid.join("\n") +
+              "\n\nUse 10-digit Indian numbers or 91 + 10 digits.");
+    }
+
+    if (customers.length === 0) {
+        alert("No valid phone numbers found.");
+        return;
+    }
+
+    currentIndex = 0;
+
+    document.getElementById("campaign")
+        .classList.remove("hidden");
+
+    renderCampaign();
+
+}
+
+function findNextPending() {
+
+    while (
+        currentIndex < customers.length &&
+        customers[currentIndex].status !== "pending"
+    ) {
+        currentIndex++;
+    }
+
+}
+
+function renderCampaign() {
+
+    findNextPending();
+
+    const total = customers.length;
+
+    const sent = customers.filter(
+        c => c.status === "sent"
+    ).length;
+
+    const skipped = customers.filter(
+        c => c.status === "skipped"
+    ).length;
+
+    const completed = sent + skipped;
+
+    document.getElementById("progressText").textContent =
+        completed + " / " + total;
+
+    document.getElementById("progressBar").style.width =
+        (completed / total * 100) + "%";
+
+    document.getElementById("summary").textContent =
+        "Sent: " + sent +
+        " | Skipped: " + skipped +
+        " | Remaining: " + (total - completed);
+
+    const finished = currentIndex >= total;
+
+    document.getElementById("currentPanel")
+        .classList.toggle("hidden", finished);
+
+    document.getElementById("completedPanel")
+        .classList.toggle("hidden", !finished);
+
+    if (!finished) {
+
+        const customer = customers[currentIndex];
+
+        document.getElementById("customerTitle").textContent =
+            "Customer " + (currentIndex + 1);
+
+        document.getElementById("currentPhone").textContent =
+            "+" + customer.phone;
+
+        document.getElementById("currentMessage").textContent =
+            messageText;
+
+    }
+
+    renderCustomerList();
+
+}
+
+function openWhatsApp() {
+
+    if (currentIndex >= customers.length) return;
+
+    const customer = customers[currentIndex];
+
+    window.open(customer.url, "_blank");
+
+}
+
+function markSent() {
+
+    if (currentIndex >= customers.length) return;
+
+    customers[currentIndex].status = "sent";
+
+    currentIndex++;
+
+    renderCampaign();
+
+}
+
+function skipCustomer() {
+
+    if (currentIndex >= customers.length) return;
+
+    customers[currentIndex].status = "skipped";
+
+    currentIndex++;
+
+    renderCampaign();
+
+}
+
+function renderCustomerList() {
+
+    const list = document.getElementById("customerList");
+
+    list.innerHTML = "";
+
+    customers.forEach((customer, index) => {
 
         const div = document.createElement("div");
-        div.className = "result";
+        div.className = "customer";
 
-        const link = document.createElement("a");
-        link.href = url;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-        link.textContent = url;
+        const title = document.createElement("b");
+        title.textContent =
+            (index + 1) + ". +" + customer.phone;
 
-        const copyButton = document.createElement("button");
-        copyButton.textContent = "Copy URL";
+        const status = document.createElement("span");
+        status.className = " " + customer.status;
+        status.textContent = " - " + customer.status.toUpperCase();
 
-        copyButton.onclick = () => {
-            navigator.clipboard.writeText(url);
-            copyButton.textContent = "Copied!";
-        };
+        const link = document.createElement("div");
+        link.className = "url";
+        link.textContent = customer.url;
 
+        div.appendChild(title);
+        div.appendChild(status);
         div.appendChild(link);
-        div.appendChild(copyButton);
 
-        output.appendChild(div);
+        list.appendChild(div);
 
     });
 
@@ -132,15 +394,17 @@ function generateLinks() {
 
 function copyAll() {
 
-    const links = document.querySelectorAll(".result a");
+    const output = customers.map((customer, index) => {
 
-    const allURLs = Array.from(links)
-        .map(link => link.href)
-        .join("\n");
+        return (index + 1) + ".\n" +
+            "Phone: +" + customer.phone + "\n" +
+            customer.url;
 
-    navigator.clipboard.writeText(allURLs);
+    }).join("\n\n");
 
-    alert("All URLs copied!");
+    navigator.clipboard.writeText(output)
+        .then(() => alert("All URLs copied!"))
+        .catch(() => alert("Copy failed. Use HTTPS or a local browser page."));
 
 }
 

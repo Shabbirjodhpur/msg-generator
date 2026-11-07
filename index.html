@@ -1,0 +1,150 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WhatsApp URL Generator</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        max-width: 700px;
+        margin: 30px auto;
+        padding: 20px;
+        background: #f4f4f4;
+    }
+
+    h2 {
+        text-align: center;
+    }
+
+    textarea {
+        width: 100%;
+        height: 130px;
+        padding: 12px;
+        margin: 10px 0 20px;
+        box-sizing: border-box;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 15px;
+    }
+
+    button {
+        padding: 12px 20px;
+        background: #128C7E;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin: 5px 0;
+    }
+
+    button:hover {
+        background: #075E54;
+    }
+
+    .result {
+        background: white;
+        padding: 12px;
+        margin: 10px 0;
+        border-radius: 6px;
+        overflow-wrap: anywhere;
+    }
+
+    .result a {
+        color: #128C7E;
+        display: block;
+        margin-bottom: 8px;
+    }
+</style>
+</head>
+
+<body>
+
+<h2>WhatsApp URL Generator</h2>
+
+<label><b>Phone Numbers (CSV format)</b></label>
+<textarea id="numbers" placeholder="8686751120,
+9246825221"></textarea>
+
+<label><b>WhatsApp Message</b></label>
+<textarea id="message" placeholder="Hi, how are you?"></textarea>
+
+<button onclick="generateLinks()">Execute</button>
+
+<button onclick="copyAll()">Copy All URLs</button>
+
+<h3>Generated URLs:</h3>
+<div id="output"></div>
+
+<script>
+
+function generateLinks() {
+
+    const numbersText = document.getElementById("numbers").value;
+    const message = document.getElementById("message").value;
+
+    const numbers = numbersText
+        .split(/[\n,]+/)
+        .map(num => num.trim().replace(/\D/g, ""))
+        .filter(num => num.length > 0);
+
+    const output = document.getElementById("output");
+
+    output.innerHTML = "";
+
+    numbers.forEach(number => {
+
+        // Add India country code if not already present
+        if (number.length === 10) {
+            number = "91" + number;
+        }
+
+        const url = "https://wa.me/" + number +
+                    "?text=" + encodeURIComponent(message);
+
+        const div = document.createElement("div");
+        div.className = "result";
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = url;
+
+        const copyButton = document.createElement("button");
+        copyButton.textContent = "Copy URL";
+
+        copyButton.onclick = () => {
+            navigator.clipboard.writeText(url);
+            copyButton.textContent = "Copied!";
+        };
+
+        div.appendChild(link);
+        div.appendChild(copyButton);
+
+        output.appendChild(div);
+
+    });
+
+}
+
+function copyAll() {
+
+    const links = document.querySelectorAll(".result a");
+
+    const allURLs = Array.from(links)
+        .map(link => link.href)
+        .join("\n");
+
+    navigator.clipboard.writeText(allURLs);
+
+    alert("All URLs copied!");
+
+}
+
+</script>
+
+</body>
+</html>
